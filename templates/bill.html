@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block extra_head %}
+  <script src="/static/js/bill.js"></script>
+  <script>
+var view = bill.BillView.init('{{ bill_type }}', '{{ bill_number }}');
+  </script>
+{% endblock %}
+
+{% block content %}
+  <div data-bind="visible: is_valid" style="display: none;">
+    <h2 data-bind="text: title"></h2>
+    <h3 data-bind="text: bill().title_without_number"></h3>
+
+    <p data-bind="text: status_desc"></p>
+
+    <div
+        class="bill-committees"
+        data-bind="visible: where() == 'committee'"
+        style="display: none;">
+      <span class="bill-committees-referred">
+        Referred to
+      </span>
+      <ul
+          class="bill-committees-list"
+          data-bind="foreach: bill().committees">
+        <li class="bill-commitee">
+          <a data-bind="attr: {href: url}, text: name"></a>
+        </li>
+      </ul>
+    </div>
+
+    <div data-bind="visible: officials().length" style="display: none;">
+      <ul data-bind="foreach: officials" class="my-officials">
+        <li data-bind="text: person.name"></li>
+      </ul>
+    </div>
+
+    <div data-bind="visible: actions().length" style="display: none;">
+      <ul data-bind="foreach: actions">
+        <li data-bind="text: $data"></li>
+      </ul>
+    </div>
+  </div>
+
+  <form data-bind="submit: get_offices">
+    <label for="address">Address:</label>
+    <input type="text" name="address" />
+
+    <input type="submit" value="Find my legislators" />
+  </form>
+
+{% endblock %}
