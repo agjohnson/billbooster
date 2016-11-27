@@ -1,7 +1,6 @@
 /* Views */
 
-var express = require('express'),
-    bill_lookup = require('../us-bill-lookup/index.js');
+var express = require('express');
 
 /* Lookup table for short name to identifiers on GovTrack */
 var LOOKUP_TABLE = {

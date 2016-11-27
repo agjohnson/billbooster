@@ -1,5 +1,43 @@
 {% extends 'base.html' %}
 
+{% block extra_head %}
+  <script src="/static/js/bill.js"></script>
+  <script>
+var view = bill.HomeView.init();
+  </script>
+{% endblock %}
+
 {% block content %}
-  Stuff.
+  <div class="row">
+    <div class="column">
+      <p>
+        <em>Get involved.</em> Find out what you can do to get a bill voted on and passed. Lookup a bill below and see how you can influence your representatives.
+      </p>
+
+      <form action="#" data-bind="submit: lookup">
+        <label>Bill</label>
+        <input type="text" name="bill" placeholder="HR 6340" />
+        <p
+            data-bind="visible: lookup_error"
+            class="form-error"
+            style="display: none;">
+          The bill you entered is not in a valid format. This lookup should only
+          include the bill type and number, such as "HR 6340".
+        </p>
+        <input type="submit" value="Search" />
+      </form>
+    </div>
+    <div class="column">
+      <p>
+        Examples:
+      </p>
+
+      <ul>
+        <li><a href="/bill/hr/6340">H.R. 6340</a></li>
+        <li><a href="/bill/hr/6378">HR 6378</a></li>
+        <li><a href="/bill/s/3433">S 3433</a></li>
+        <li><a href="/bill/hr/6378">HRES 1234</a></li>
+      </ul>
+    </div>
+  </div>
 {% endblock %}

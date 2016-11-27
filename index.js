@@ -8,7 +8,11 @@ var express = require('express'),
     api = require('./api');
 
 function init() {
-    var app = express();
+    var app = express(),
+        config = {
+            google_api_token: process.env.GOOGLE_API_TOKEN,
+            port: process.env.HTTP_PORT || 9000,
+        };
 
     app.use(body_parser.urlencoded({ extended: true }));
     app.use(cookie_parser());
@@ -19,10 +23,21 @@ function init() {
     });
 
     app.use('/', views());
-    app.use('/api', api());
+    app.use('/api', api(config));
     app.use('/static', express.static('static'));
-    app.use('/static/bower', express.static('bower_components'));
-    app.listen(9000);
+    app.use(function (err, req, res, next) {
+        console.error(err.stack);
+        if (err.name == 'HttpError') {
+            var status_code = err.status_code || 500;
+            return res.status(status_code).json({
+                'error': err.message,
+                'status_code': status_code
+            });
+        }
+        return next(err);
+    });
+
+    app.listen(config.port);
 }
 
 init();

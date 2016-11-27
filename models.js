@@ -5,27 +5,85 @@ var http = require('https'),
     request = require('request'),
     Promise = require('bluebird');
 
-var KEY = 'AIzaSyAnkrWjYAdItTqYo9Ux19pZU1Z3CHA1x_A';
+var STATUS_NEW = 'new',
+    STATUS_COMMITTEE = 'committee',
+    STATUS_HOUSE = 'house',
+    STATUS_SENATE = 'senate',
+    STATUS_PRESIDENT = 'president',
+    STATUS_FAILED = 'failed',
+    STATUS_PASSED = 'passed';
+
+var STATUS = {
+    prov_kill_veto: STATUS_HOUSE, // TODO originating chamber
+    fail_second_senate: STATUS_FAILED,
+    passed_bill: STATUS_PRESIDENT,
+    // passed_constamend: STATUS_,  TODO goes to states
+    pass_back_senate: STATUS_HOUSE,
+    vetoed_override_fail_second_house: STATUS_FAILED,  // TODO correct?
+    fail_originating_house: STATUS_FAILED,
+    fail_second_house: STATUS_FAILED,
+    override_pass_over_house: STATUS_SENATE,
+    override_pass_over_senate: STATUS_HOUSE,
+    pass_back_house: STATUS_HOUSE,
+    // prov_kill_cloturefailed: STATUS_,  TODO can be retried
+    enacted_veto_override: STATUS_PASSED,
+    passed_concurrentres: STATUS_PASSED,
+    // prov_kill_suspensionfailed: STATUS_,  TODO can be retried
+    passed_simpleres: STATUS_PASSED,
+    vetoed_pocket: STATUS_FAILED,  // TODO back for veto override?
+    vetoed_override_fail_originating_house: STATUS_FAILED,
+    conference_passed_senate: STATUS_PASSED,
+    fail_originating_senate: STATUS_FAILED,
+    pass_over_senate: STATUS_HOUSE,
+    // prov_kill_pingpongfail: STATUS_,  TODO can be retried
+    enacted_signed: STATUS_PASSED,
+    pass_over_house: STATUS_SENATE,
+    conference_passed_house: STATUS_SENATE,
+    reported: STATUS_HOUSE,
+    vetoed_override_fail_second_senate: STATUS_FAILED,
+    vetoed_override_fail_originating_senate: STATUS_FAILED,
+    enacted_tendayrule: STATUS_PASSED,
+    introduced: STATUS_NEW,
+    enacted_unknown: STATUS_PASSED,
+    referred: STATUS_COMMITTEE
+}
 
 /* Bill - from GovTrack */
 function Bill(data) {
-    this.data = data;
-    this.current_status = data.current_status;
-    this.committees = data.committees;
+    //this.data = data;
+    this.number = data.number;
+    this.display_number = data.display_number;
+    this.status = data.current_status;
+    this.status_desc = data.current_status_description;
+    this.title = data.title_without_number;
+    // TODO replace with common Person model, consuming role + person
+    this.sponsor = {
+        id: data.sponsor.id,
+        name: data.sponsor.name,
+        urls: {
+            govtrack: data.sponsor.link
+        }
+    }
+    this.cosponsors = data.cosponsors.map(function (cosponsor) {
+        return {
+            id: cosponsor.id,
+            name: cosponsor.name,
+            urls: {
+                govtrack: cosponsor.link
+            }
+        };
+    });
+    this.committees = data.committees.map(function (committee) {
+        return {
+            id: committee.id,
+            name: committee.name,
+            urls: {
+                website: committee.url
+            }
+        };
+    });
+    this.where = STATUS[data.current_status];
 }
-
-Bill.prototype.to_api = function () {
-    var data = this.data;
-    data.committees = this.committees.map(function (committee) {
-        return committee.to_api();
-    });
-    data.sponsor = this.data.sponsor.id;
-    delete data.sponsor_role;
-    data.cosponsors = this.data.cosponsors.map(function (cosponsor) {
-        return cosponsor.id;
-    });
-    return data;
-};
 
 Bill.lookup = function(bill_type, bill_number) {
     return new Promise(function (resolve, reject) {
@@ -66,16 +124,14 @@ Bill.lookup = function(bill_type, bill_number) {
 
 /* Committee - from GovTrack */
 function Committee(data) {
-    this.data = data;
+    //this.data = data;
     this.id = data.id;
-    this.member = [];
+    this.name = data.name;
+    this.urls = {
+        website: data.url
+    };
+    this.members = [];
 }
-
-Committee.prototype.to_api = function () {
-    var data = this.data;
-    data.members = this.members;
-    return data;
-};
 
 Committee.prototype.get_members = function () {
     var self = this;
@@ -100,10 +156,8 @@ Committee.prototype.get_members = function () {
 
 /* Office - from Google Civic Data API */
 function Office(data) {
-    this.data = data;
-
     // Get state and district from divisionId
-    var parts = this.data.divisionId.split('/').reduce(function (result, item) {
+    var parts = data.divisionId.split('/').reduce(function (result, item) {
         var subparts = item.split(':');
         result[subparts[0]] = subparts[1];
         return result
@@ -113,16 +167,6 @@ function Office(data) {
     this.state = parts.state;
     this.district = parts.cd;
 }
-
-Office.prototype.to_api = function () {
-    return {
-        country: this.country,
-        state: this.state,
-        district: this.district,
-        name: this.data.name,
-        officials: this.data.officials,
-    };
-};
 
 Office.prototype.get_representative = function () {
     return new Promise(function (resolve, reject) {
@@ -146,7 +190,7 @@ Office.prototype.get_representative = function () {
     });
 };
 
-Office.offices_from_address = function (address) {
+Office.offices_from_address = function (address, config) {
     return new Promise(function (resolve, reject) {
         var req = request({
             uri: 'https://www.googleapis.com/civicinfo/v2/representatives',
@@ -157,7 +201,7 @@ Office.offices_from_address = function (address) {
                     'legislatorLowerBody',
                     'legislatorUpperBody'
                 ],
-                key: KEY
+                key: config.google_api_token
             },
             json: true
         }, function (error, res, body) {
@@ -188,12 +232,15 @@ Office.offices_from_address = function (address) {
 
 /* Official - from GovTrack API */
 function Official(data) {
-    this.data = data;
+    // TODO make this centralized and include more info
+    this.id = data.person.id;
+    this.name = data.person.name
+    this.role_type = data.role_type;
+    this.urls = {
+        govtrack: data.person.link
+    };
+    this.phone = data.phone;
 }
-
-Official.prototype.to_api = function () {
-    return this.data;
-};
 
 Official.lookup = function(state, district) {
     var params = {

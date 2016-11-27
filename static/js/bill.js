@@ -56,91 +56,201 @@ var bill =
 
 	var ko = __webpack_require__(2),
 	    $ = __webpack_require__(5),
-	    Promise = __webpack_require__(6);
+	    Promise = __webpack_require__(6),
+	    cookie = __webpack_require__(9);
 
-	function BillView() {
+	function HomeView() {
 	    var self = this;
 
+	    self.lookup_error = ko.observable(false);
+	    self.lookup = function (form) {
+	        var bill = form.bill.value;
+	        self.lookup_error(false);
+
+	        // REGEX TIME
+	        var bill_re = /^\s*(h[\.\s]?r|s|h[\.\s]?res|s[\.\s]?res|h[\.\s]?j[\.\s]?res|s[\.\s]?j[\.\s]?res|h[\.\s]?con[\.\s]?res|s[\.\s]?con[\.\s]?res)[\.]?\s*(\d+)\s*$/;
+	        var found = bill_re.exec(bill);
+	        if (!found) {
+	            return self.lookup_error(true);
+	        }
+	        else {
+	            var bill_type = found[1],
+	                bill_number = found[2];
+
+	            bill_type = bill_type.replace(/[\.\s]/g, '');
+	            window.location = '/bill/' + bill_type + '/' + bill_number;
+	        }
+	    };
+	}
+
+	HomeView.init = function () {
+	    var view = new HomeView();
+	    $(document).ready(function () {
+	        ko.applyBindings(view);
+	    });
+	    return view;
+	};
+
+	function BillView(bill_type, bill_number) {
+	    var self = this;
+
+	    self.bill_type = bill_type;
+	    self.bill_number = bill_number;
 	    self.bill = ko.observable({});
-	    self.is_valid = ko.computed(function () {
-	        return self.bill().hasOwnProperty('number');
-	    });
 
-	    /* Util properties */
-	    self.title = ko.computed(function () {
-	        var noun = self.bill().noun || 'bill';
-	        noun = (noun.charAt(0).toUpperCase()) + noun.slice(1);
-	        return noun + " " + self.bill().display_number;
-	    });
-	    self.status = ko.computed(function () {
-	        return self.bill().current_status;
-	    });
-	    self.status_desc = ko.computed(function () {
-	        return self.bill().current_status_description;
-	    });
+	    /* Mirrored properties */
+	    var properties = [
+	        'status',
+	        'status_desc',
+	        'number',
+	        'display_number',
+	        'title',
+	        'where',
+	        'committees',
+	        'sponsor',
+	        'cosponsors',
+	    ];
+	    for (var prop_n in properties) {
+	        var property = properties[prop_n];
+	        self[property] = ko.observable();
+	    }
 
-	    /* Actions */
-	    self.where = ko.computed(function () {
-	        var status = self.status();
-	        if (status == 'referred') {
-	            return 'committee';
+	    var reset_mirrored_keys = ko.computed(function () {
+	        var bill = self.bill(),
+	            keys = Object.keys(bill);
+	        for (key in keys) {
+	            if (self.hasOwnProperty(keys[key])) {
+	                self[keys[key]](bill[keys[key]]);
+	            }
 	        }
 	    });
 
-	    /* Actions */
+	    /* Non-bill observables */
 	    self.offices = ko.observableArray();
 	    self.officials = ko.observableArray();
+
+	    /* Util methods */
+	    self.is_valid = ko.computed(function () {
+	        return self.bill().hasOwnProperty('number');
+	    });
+	    self.is_sponsor = function (official) {
+	        return self.sponsor().id == official.id;
+	    };
+	    self.is_cosponsor = function (official) {
+	        return self.cosponsors().filter(function (cosponsor) {
+	            return cosponsor.id == official.id;
+	        }).length > 0;
+	    };
+	    self.has_committees = function () {
+	        return (
+	            self.where() == 'committee' &&
+	            self.committees().length > 0
+	        );
+	    };
+	    self.needs_officials = ko.computed(function () {
+	        return (
+	            self.is_valid() &&
+	            self.officials().length == 0
+	        );
+	    });
+	    self.is_action_share = ko.computed(function () {
+	        return (
+	            self.is_valid() &&
+	            self.officials().length > 0 &&
+	            self.actions().keys().length == 0
+	        );
+	    });
+
+	    /* Other properties */
+	    self.page_link = ko.computed(function () {
+	        return "/bill/" + bill_type + "/" + bill_number;
+	    });
+
+	    /* Actions */
+	    self.get_officials = ko.computed(function () {
+	        var offices = self.offices(),
+	            all_officials = [];
+	        Promise.map(offices, function (office) {
+	            var url = '/api/officials/' + office.state;
+	            if (office.district) {
+	                url += '/' + office.district;
+	            }
+	            return $.get(url)
+	                .then(function (result) {
+	                    officials = result.officials;
+	                    for (var official_n in officials) {
+	                        all_officials.push(officials[official_n]);
+	                    }
+	                });
+	        }).then(function () {
+	            self.officials(all_officials);
+	        });
+	    });
 	    self.get_offices = function (form) {
-	        var all_officials = [];
 	        $.post('/api/offices/lookup', {address: form.address.value})
 	            .then(function (offices) {
-	                return Promise.map(offices.offices, function (office) {
-	                    var url = '/api/officials/' + office.state;
-	                    if (office.district) {
-	                        url += '/' + office.district;
-	                    }
-	                    return $.get(url)
-	                        .then(function (officials) {
-	                            officials = officials.officials;
-	                            for (official_n in officials) {
-	                                all_officials.push(officials[official_n]);
-	                            }
-	                        });
-	                }).then(function () {
-	                    self.officials(all_officials);
-	                });
+	                self.offices(offices.offices);
 	            });
 	    };
 	    self.actions = ko.computed(function () {
 	        var officials = self.officials(),
-	            committees = self.bill().committees,
+	            committees = self.committees(),
 	            where = self.where(),
-	            actions = [];
+	            actions = new Actions();
 
-	        for (official_n in officials) {
-	            var official = officials[official_n];
-	            if (where == 'committee') {
-	                for (committee_n in committees) {
-	                    var committee = committees[committee_n];
-	                    for (member_n in committee.members) {
-	                        if (committee.members[member_n] == official.person.id) {
-	                            actions.push(official.person.name + " is a member of " + committee.name);
+	        officials
+	            .map(function (official) {
+	                var reason = null;
+	                if (self.is_sponsor(official)) {
+	                    actions.add_action('sponsor', official);
+	                }
+	                else if (self.is_cosponsor(official)) {
+	                    actions.add_action('cosponsor', official);
+	                }
+	                else if (where == 'committee') {
+	                    for (var committee_n in committees) {
+	                        var committee = committees[committee_n];
+	                        for (var member_n in committee.members) {
+	                            if (committee.members[member_n] == official.id) {
+	                                actions.add_action('committee', official, {
+	                                    committee: committee
+	                                });
+	                            }
 	                        }
 	                    }
 	                }
-	            }
-	        }
+	                else if (where == 'house') {
+	                    actions.add_action('house', official);
+	                }
+	                else if (where == 'senate' && official.role_type == 'senator') {
+	                    actions.add_action('senate', official);
+	                }
+	            });
 
 	        return actions;
 	    });
 	}
 
-	BillView.init = function (bill_type, bill_number) {
-	    var view = new BillView();
-	    $.get('/api/bill/' + bill_type + '/' + bill_number)
+	BillView.prototype.get_offices_from_cookie = function () {
+	    var offices = cookie.get('offices');
+	    if (offices && offices.substr(0, 2) == 'j:') {
+	        offices = JSON.parse(offices.slice(2));
+	        this.offices(offices.offices);
+	    }
+	};
+
+	BillView.prototype.get_bill = function () {
+	    var self = this;
+	    $.get('/api/bill/' + self.bill_type + '/' + self.bill_number)
 	        .then(function (bill) {
-	            view.bill(bill);
+	            self.bill(bill);
+	            self.get_offices_from_cookie();
 	        });
+	};
+
+	BillView.init = function (bill_type, bill_number) {
+	    var view = new BillView(bill_type, bill_number);
+	    view.get_bill();
 
 	    $(document).ready(function () {
 	        ko.applyBindings(view);
@@ -149,7 +259,24 @@ var bill =
 	    return view;
 	};
 
-	module.exports.BillView = BillView;
+	function Actions() {
+	    this.reasons = {};
+	}
+
+	Actions.prototype.add_action = function (reason, official, options) {
+	    var reasons = this.reasons[reason] || [];
+	    reasons.push({official: official, options: options});
+	    this.reasons[reason] = reasons;
+	};
+
+	Actions.prototype.keys = function () {
+	    return Object.keys(this.reasons);
+	};
+
+	module.exports = {
+	    BillView: BillView,
+	    HomeView: HomeView
+	}
 
 
 /***/ },
@@ -22173,6 +22300,168 @@ var bill =
 	  delete immediateIds[id];
 	};
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8).setImmediate, __webpack_require__(8).clearImmediate))
+
+/***/ },
+/* 9 */
+/***/ function(module, exports, __webpack_require__) {
+
+	var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
+	 * JavaScript Cookie v2.1.3
+	 * https://github.com/js-cookie/js-cookie
+	 *
+	 * Copyright 2006, 2015 Klaus Hartl & Fagner Brack
+	 * Released under the MIT license
+	 */
+	;(function (factory) {
+		var registeredInModuleLoader = false;
+		if (true) {
+			!(__WEBPACK_AMD_DEFINE_FACTORY__ = (factory), __WEBPACK_AMD_DEFINE_RESULT__ = (typeof __WEBPACK_AMD_DEFINE_FACTORY__ === 'function' ? (__WEBPACK_AMD_DEFINE_FACTORY__.call(exports, __webpack_require__, exports, module)) : __WEBPACK_AMD_DEFINE_FACTORY__), __WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
+			registeredInModuleLoader = true;
+		}
+		if (true) {
+			module.exports = factory();
+			registeredInModuleLoader = true;
+		}
+		if (!registeredInModuleLoader) {
+			var OldCookies = window.Cookies;
+			var api = window.Cookies = factory();
+			api.noConflict = function () {
+				window.Cookies = OldCookies;
+				return api;
+			};
+		}
+	}(function () {
+		function extend () {
+			var i = 0;
+			var result = {};
+			for (; i < arguments.length; i++) {
+				var attributes = arguments[ i ];
+				for (var key in attributes) {
+					result[key] = attributes[key];
+				}
+			}
+			return result;
+		}
+
+		function init (converter) {
+			function api (key, value, attributes) {
+				var result;
+				if (typeof document === 'undefined') {
+					return;
+				}
+
+				// Write
+
+				if (arguments.length > 1) {
+					attributes = extend({
+						path: '/'
+					}, api.defaults, attributes);
+
+					if (typeof attributes.expires === 'number') {
+						var expires = new Date();
+						expires.setMilliseconds(expires.getMilliseconds() + attributes.expires * 864e+5);
+						attributes.expires = expires;
+					}
+
+					try {
+						result = JSON.stringify(value);
+						if (/^[\{\[]/.test(result)) {
+							value = result;
+						}
+					} catch (e) {}
+
+					if (!converter.write) {
+						value = encodeURIComponent(String(value))
+							.replace(/%(23|24|26|2B|3A|3C|3E|3D|2F|3F|40|5B|5D|5E|60|7B|7D|7C)/g, decodeURIComponent);
+					} else {
+						value = converter.write(value, key);
+					}
+
+					key = encodeURIComponent(String(key));
+					key = key.replace(/%(23|24|26|2B|5E|60|7C)/g, decodeURIComponent);
+					key = key.replace(/[\(\)]/g, escape);
+
+					return (document.cookie = [
+						key, '=', value,
+						attributes.expires ? '; expires=' + attributes.expires.toUTCString() : '', // use expires attribute, max-age is not supported by IE
+						attributes.path ? '; path=' + attributes.path : '',
+						attributes.domain ? '; domain=' + attributes.domain : '',
+						attributes.secure ? '; secure' : ''
+					].join(''));
+				}
+
+				// Read
+
+				if (!key) {
+					result = {};
+				}
+
+				// To prevent the for loop in the first place assign an empty array
+				// in case there are no cookies at all. Also prevents odd result when
+				// calling "get()"
+				var cookies = document.cookie ? document.cookie.split('; ') : [];
+				var rdecode = /(%[0-9A-Z]{2})+/g;
+				var i = 0;
+
+				for (; i < cookies.length; i++) {
+					var parts = cookies[i].split('=');
+					var cookie = parts.slice(1).join('=');
+
+					if (cookie.charAt(0) === '"') {
+						cookie = cookie.slice(1, -1);
+					}
+
+					try {
+						var name = parts[0].replace(rdecode, decodeURIComponent);
+						cookie = converter.read ?
+							converter.read(cookie, name) : converter(cookie, name) ||
+							cookie.replace(rdecode, decodeURIComponent);
+
+						if (this.json) {
+							try {
+								cookie = JSON.parse(cookie);
+							} catch (e) {}
+						}
+
+						if (key === name) {
+							result = cookie;
+							break;
+						}
+
+						if (!key) {
+							result[name] = cookie;
+						}
+					} catch (e) {}
+				}
+
+				return result;
+			}
+
+			api.set = api;
+			api.get = function (key) {
+				return api.call(api, key);
+			};
+			api.getJSON = function () {
+				return api.apply({
+					json: true
+				}, [].slice.call(arguments));
+			};
+			api.defaults = {};
+
+			api.remove = function (key, attributes) {
+				api(key, '', extend(attributes, {
+					expires: -1
+				}));
+			};
+
+			api.withConverter = init;
+
+			return api;
+		}
+
+		return init(function () {});
+	}));
+
 
 /***/ }
 /******/ ]);

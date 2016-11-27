@@ -1,0 +1,136 @@
+@import (less) '../../node_modules/normalize.css/normalize.css';
+@import '../../node_modules/milligram-less/dist/milligram';
+
+@color-initial: #fff;
+@color-primary: #9b4dca;
+@color-secondary: #404c36;
+@color-tertiary: #f4f5f6;
+@color-quaternary: #d1d1d1;
+@color-quinary: #e1e1e1;
+
+/* Mixins */
+
+.links_inverted () {
+    a {
+        color: @color-initial;
+
+        &:link { color: @color-initial; }
+        &:visited { color: @color-initial; }
+        &:hover { color: fadeout(@color-initial, 20%); }
+        &:active { color: fadeout(@color-initial, 20%); }
+    }
+}
+
+body {
+    font-family: 'Droid Serif';
+}
+
+header {
+    display: block;
+    width: 100%;
+    background-color: @color-primary;
+    padding: 1rem;
+    margin-bottom: 2rem;
+    font-family: sans-serif;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: .2rem;
+    color: @color-initial;
+
+    .links_inverted();
+}
+
+div.container {
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+
+    @media (min-width: 40rem) {
+        max-width: 80rem;
+    }
+}
+
+/* Generic */
+h1 { font-size: 3rem; }
+h2 { font-size: 2.8rem; }
+h3 { font-size: 2.6rem; }
+h4 { font-size: 2.4rem; }
+h5 { font-size: 2.2rem; }
+h6 { font-size: 2.1rem; }
+
+h1, h2, h3, h4, h5, h6 {
+    letter-spacing: 0rem;
+}
+
+table {
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+
+    @media (min-width: 40rem) {
+        max-width: 80%;
+    }
+}
+
+/* Specific elements */
+h2.bill-title {
+    span.bill-title-number {
+        display: inline-block;
+        padding-left: 1rem;
+        padding-right: 1rem;
+        margin-right: .5rem;
+        font-size: 1.5rem;
+        line-height: 3.5rem;
+        vertical-align: bottom;
+        background: @color-primary;
+        color: @color-initial;
+        border-radius: .4rem;
+        -moz-border-radius: .4rem;
+        -o-border-radius: .4rem;
+        -webkit-border-radius: .4rem;
+    }
+}
+
+div.action {
+    margin-bottom: 2rem;
+    padding: 2rem;
+    background-color: @color-primary;
+    color: @color-initial;
+    border-radius: .4rem;
+
+    p.action-callout {
+        font-weight: bold;
+    }
+
+    form {
+        margin-bottom: 0rem;
+
+        input {
+            margin-bottom: 0rem;
+            color: @color-initial;
+        }
+    }
+
+    table {
+        th {
+            color: fadeout(@color-initial, 50%);
+        }
+
+        td {
+            color: @color-initial;
+        }
+
+        th, td {
+            border-bottom-color: fadeout(@color-initial, 50%);
+        }
+    }
+
+    .links_inverted();
+
+    p.action-share-link {
+        a {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+    }
+}
