@@ -2,8 +2,8 @@ This is a yet-to-be-named-properly site for researching how you can advocate for
 a US Congressional bill.
 
 .. warning::
-    This is a true weekend project, and is alpha quality code that is subject to
-    some heavy changes. Run/user at your own risk.
+    **This is a true weekend project, and is alpha quality code that is subject to
+    some heavy changes. Run/use at your own risk.**
 
 What does it do?
 ----------------
