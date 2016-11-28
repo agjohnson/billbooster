@@ -4,6 +4,7 @@ var express = require('express'),
     cookie_parser = require('cookie-parser'),
     body_parser = require('body-parser'),
     nunjucks = require('nunjucks'),
+    analytics = require('universal-analytics'),
     views = require('./views'),
     api = require('./api');
 
@@ -11,20 +12,34 @@ function init() {
     var app = express(),
         config = {
             google_api_token: process.env.GOOGLE_API_TOKEN,
+            google_analytics_id: process.env.GOOGLE_ANALYTICS_ID,
             port: process.env.HTTP_PORT || 9000,
         };
 
-    app.use(body_parser.urlencoded({ extended: true }));
-    app.use(cookie_parser());
-
+    // App extensions
     var engine = nunjucks.configure('templates', {
         express: app,
         autoescape: true
     });
 
-    app.use('/', views());
-    app.use('/api', api(config));
+    // Middleware
+    app.use(body_parser.urlencoded({ extended: true }));
+    app.use(cookie_parser());
     app.use('/static', express.static('static'));
+    app.use(analytics.middleware(config.google_analytics_id));
+    app.use(function (req, res, next) {
+        var data = {
+            dp: req.path,
+            dt: null,
+            dh: "http://billbooster.com",
+            uip: req.ip,
+            ua: req.headers['user-agent']
+        };
+        if (req.visitor) {
+            req.visitor.pageview(data).send();
+        }
+        next();
+    });
     app.use(function (err, req, res, next) {
         console.error(err.stack);
         if (err.name == 'HttpError') {
@@ -36,6 +51,10 @@ function init() {
         }
         return next(err);
     });
+
+    // Views
+    app.use('/', views());
+    app.use('/api', api(config));
 
     app.listen(config.port);
 }
