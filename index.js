@@ -35,7 +35,6 @@ function init() {
             uip: req.headers['x-forwarded-for'] || req.ip,
             ua: req.headers['user-agent']
         };
-        console.log(data);
         if (req.visitor) {
             req.visitor.pageview(data).send();
         }
