@@ -1,7 +1,7 @@
 {
-  "name": "whatcanido",
+  "name": "billbooster",
   "version": "1.0.0",
-  "description": "",
+  "description": "US Congressional bill research site",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
