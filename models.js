@@ -3,7 +3,8 @@
 var http = require('https'),
     url = require('url'),
     request = require('request'),
-    Promise = require('bluebird');
+    Promise = require('bluebird'),
+    HttpError = require('./exceptions').HttpError;
 
 var STATUS_NEW = 'new',
     STATUS_COMMITTEE = 'committee',
@@ -107,7 +108,7 @@ Bill.lookup = function(bill_type, bill_number) {
                 return resolve(body.objects[0]);
             }
             else {
-                return reject(new Error('No bills found'));
+                return reject(new HttpError('No bills found', 404));
             }
         });
     }).then(function (bill) {
