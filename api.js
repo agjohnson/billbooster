@@ -1,6 +1,7 @@
 /* API */
 
 var express = require('express'),
+    cache = require('express-cache-headers'),
     Promise = require('bluebird'),
     models = require('./models'),
     HttpError = require('./exceptions').HttpError;
@@ -20,6 +21,8 @@ var LOOKUP_TABLE = {
 module.exports = function (config) {
     var config = config || {},
         router = express.Router();
+
+    router.use(cache(60*60*24*7));
 
     router.get('/bill/:type/:number', function (req, res, next) {
         var bill_type = LOOKUP_TABLE[req.params.type],
@@ -68,7 +71,7 @@ module.exports = function (config) {
     router.get('/officials/:state/:district', get_official);
 
     /* Office lookup */
-    router.all('/offices/lookup', function (req, res, next) {
+    router.all('/offices/lookup', cache({nocache: true}), function (req, res, next) {
         var address = req.body.address || req.query.address;
 
         models.Office.offices_from_address(address, config)
