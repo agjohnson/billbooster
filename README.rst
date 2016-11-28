@@ -1,6 +1,8 @@
 This is a yet-to-be-named-properly site for researching how you can advocate for
 a US Congressional bill.
 
+The site currently lives at <http://billboost.com>
+
 .. warning::
     **This is a true weekend project, and is alpha quality code that is subject to
     some heavy changes. Run/use at your own risk.**
