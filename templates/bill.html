@@ -98,7 +98,6 @@ var view = bill.BillView.init('{{ bill_type }}', '{{ bill_number }}');
       </div>
     </div>
 
-
   </div>
 
   <div
@@ -127,4 +126,9 @@ var view = bill.BillView.init('{{ bill_type }}', '{{ bill_number }}');
     </ul>
   </div>
 
+  <div class="error" data-bind="visible: error" style="display: none;">
+    <h2>Sorry!</h2>
+
+    <p data-bind="text: error"></p>
+  </div>
 {% endblock %}

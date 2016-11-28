@@ -74,10 +74,14 @@ function BillView(bill_type, bill_number) {
     /* Non-bill observables */
     self.offices = ko.observableArray();
     self.officials = ko.observableArray();
+    self.error = ko.observable();
 
     /* Util methods */
     self.is_valid = ko.computed(function () {
         return self.bill().hasOwnProperty('number');
+    });
+    self.is_error = ko.computed(function () {
+        return typeof(self.error()) != 'undefinted';
     });
     self.is_sponsor = function (official) {
         return self.sponsor().id == official.id;
@@ -191,6 +195,9 @@ BillView.prototype.get_bill = function () {
         .then(function (bill) {
             self.bill(bill);
             self.get_offices_from_cookie();
+        })
+        .catch(function (resp) {
+            self.error(resp.responseJSON.error);
         });
 };
 
