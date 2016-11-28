@@ -83,6 +83,9 @@ function Bill(data) {
         };
     });
     this.where = STATUS[data.current_status];
+    this.urls = {
+        govtrack: data.link
+    };
 }
 
 Bill.lookup = function(bill_type, bill_number) {

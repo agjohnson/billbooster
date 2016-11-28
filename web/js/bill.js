@@ -55,6 +55,7 @@ function BillView(bill_type, bill_number) {
         'committees',
         'sponsor',
         'cosponsors',
+        'urls',
     ];
     for (var prop_n in properties) {
         var property = properties[prop_n];
@@ -110,6 +111,9 @@ function BillView(bill_type, bill_number) {
             self.actions().keys().length == 0
         );
     });
+    self.get_bill_detail = function () {
+        window.location = self.urls().govtrack;
+    };
 
     /* Other properties */
     self.page_link = ko.computed(function () {

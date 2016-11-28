@@ -32,6 +32,10 @@ var view = bill.BillView.init('{{ bill_type }}', '{{ bill_number }}');
       </ul>
     </div>
 
+    <form data-bind="submit: get_bill_detail">
+      <button class="button-outline">More information</button>
+    </form>
+
     <div data-bind="visible: !needs_officials()" style="display: none;">
       <h3>How can I help?</h3>
 
