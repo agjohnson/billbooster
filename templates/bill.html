@@ -126,7 +126,10 @@ var view = bill.BillView.init('{{ bill_type }}', '{{ bill_number }}');
   <div data-bind="visible: officials().length" style="display: none;">
     <h3>Your representatives</h3>
     <ul data-bind="foreach: officials" class="my-officials">
-      <li data-bind="text: name"></li>
+      <li>
+        <a data-bind="text: name, attr: {href: urls.govtrack}"></a>:
+        <span data-bind="text: phone"></a>
+      </li>
     </ul>
   </div>
 
