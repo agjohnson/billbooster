@@ -78,7 +78,7 @@ var bill =
 	                bill_number = found[2];
 
 	            bill_type = bill_type.replace(/[\.\s]/g, '');
-	            window.location = '/bill/' + bill_type + '/' + bill_number;
+	            window.location = '/' + bill_type + '/' + bill_number;
 	        }
 	    };
 	}
@@ -163,7 +163,7 @@ var bill =
 
 	    /* Other properties */
 	    self.page_link = ko.computed(function () {
-	        return "/bill/" + bill_type + "/" + bill_number;
+	        return '/' + bill_type + '/' + bill_number;
 	    });
 
 	    /* Actions */

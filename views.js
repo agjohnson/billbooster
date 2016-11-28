@@ -22,21 +22,13 @@ module.exports = function (config) {
         res.render('home.html');
     });
 
-    /* Bills */
-    router.param('type', function (req, res, next, bill_type) {
-        req.bill_type = bill_type;
-        next();
-    });
+    router.get('/:type/:number', function (req, res) {
+        var bill_type = req.params.type,
+            bill_number = req.params.number;
 
-    router.param('number', function (req, res, next, bill_number) {
-        req.bill_number = bill_number;
-        next();
-    });
-
-    router.get('/bill/:type/:number', function (req, res) {
         res.render('bill.html', {
-            bill_type: req.bill_type,
-            bill_number: req.bill_number,
+            bill_type: bill_type,
+            bill_number: bill_number,
         });
     });
 

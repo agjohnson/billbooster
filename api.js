@@ -51,6 +51,7 @@ module.exports = function (config) {
                 return res.send(bill);
             })
             .catch(function (err) {
+                console.error(err);
                 return next(new HttpError('Bill not found', 404));
             });
     });
