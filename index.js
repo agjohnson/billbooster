@@ -40,6 +40,12 @@ function init() {
         }
         next();
     });
+
+    // Views
+    app.use('/', views());
+    app.use('/api', api(config));
+
+    // Error handling - this must be last
     app.use(function (err, req, res, next) {
         console.error(err.stack);
         if (err.name == 'HttpError') {
@@ -51,10 +57,6 @@ function init() {
         }
         return next(err);
     });
-
-    // Views
-    app.use('/', views());
-    app.use('/api', api(config));
 
     app.listen(config.port);
 }
