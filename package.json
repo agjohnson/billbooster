@@ -30,7 +30,7 @@
     "milligram-less": "^1.2.0",
     "normalize.css": "^5.0.0",
     "nunjucks": "^3.0.0",
-    "requests": "^0.1.7",
+    "request": "^2.79.0",
     "vinyl-buffer": "^1.0.0",
     "vinyl-named": "^1.1.0",
     "vinyl-source-stream": "^1.1.0"
